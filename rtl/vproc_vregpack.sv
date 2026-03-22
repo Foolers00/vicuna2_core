@@ -72,6 +72,18 @@ module vproc_vregpack #(
     // vector register addresses)
     localparam int unsigned PEND_CLEAR_CNT_W = $clog2(VADDR_W-1);
 
+    typedef int unsigned msk_mul_array_t [RES_CNT-1:0];
+
+    function automatic msk_mul_array_t calc_msk_mul();
+        msk_mul_array_t tmp;
+        for (int i = 0; i < RES_CNT; i++) begin
+            tmp[i] = (RES_W[i] < 8) ? 1 : (RES_W[i] / 8);
+        end
+        return tmp;
+    endfunction
+
+    localparam int unsigned MSK_MUL[RES_CNT-1:0] = calc_msk_mul();
+
     typedef struct packed {
         logic   [INSTR_ID_W            -1:0] instr_id;
         cfg_vsew                             eew;
@@ -83,6 +95,7 @@ module vproc_vregpack #(
         logic                                pend_clr;
         logic   [PEND_CLEAR_CNT_W      -1:0] pend_clr_cnt;
         logic                                instr_done;
+        logic   [RES_CNT-1:0][$clog2(VPORT_W)-1:0] msk_idx;
     } vregpack_state_t;
 
     logic            stage_valid_q, stage_valid_d;
@@ -106,8 +119,10 @@ module vproc_vregpack #(
 
     logic [RES_CNT-1:0][VPORT_W  -1:0] res_buffer, res_buffer_next;
     logic [RES_CNT-1:0][VPORT_W/8-1:0] msk_buffer, msk_buffer_next;
+    logic [RES_CNT-1:0][$clog2(VPORT_W)-1:0] msk_idx, msk_idx_next;
     assign res_buffer = stage_state_q.res_buffer;
     assign msk_buffer = stage_state_q.msk_buffer;
+    assign msk_idx = stage_state_q.msk_idx;
     always_comb begin
         stage_valid_d = stage_valid_q;
         stage_state_d = stage_state_q;
@@ -125,6 +140,7 @@ module vproc_vregpack #(
                 if (pipe_in_res_valid_i[i]) begin
                     stage_state_d.res_buffer[i] = res_buffer_next[i];
                     stage_state_d.msk_buffer[i] = msk_buffer_next[i];
+                    stage_state_d.msk_idx[i] = msk_idx_next[i];
                 end
             end
         end
@@ -171,7 +187,7 @@ module vproc_vregpack #(
                     vreg_wr_data_o  = {{(VPORT_W/2){1'b0}}, res_buffer[i][VPORT_W-1:VPORT_W/2]};
                     vreg_wr_be_o    = {{(VPORT_W/16){1'b0}}, msk_buffer[i][VPORT_W/8-1:VPORT_W/16]};
                 end else begin
-                    vreg_wr_data_o  = RES_MASK[i] ? {8{res_buffer[i][VPORT_W/8-1:0]}} : res_buffer[i];
+                    vreg_wr_data_o  = res_buffer[i]; //RES_MASK[i] ? {8{res_buffer[i][VPORT_W/8-1:0]}} : res_buffer[i];
                     vreg_wr_be_o    = msk_buffer[i];
                 end
             end
