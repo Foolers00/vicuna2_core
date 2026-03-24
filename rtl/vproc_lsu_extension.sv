@@ -38,7 +38,25 @@ module vproc_lsu_extension import vproc_pkg::*; #(
 
         OBI_BUS.Manager              obi_bus [MEM_PORTS-1:0]
     );
+    /////////////////////////////////PERFORMANCE COUNTERS////////////////////////////////
+    `define ENABLE_PERF 1
 
+    `ifdef ENABLE_PERF
+        typedef struct packed {
+            logic [31:0] read_hit;
+            logic [31:0] read_pending_hit;
+            logic [31:0] read_evict;
+            logic [31:0] read_pending_wait;
+            logic [31:0] write_hit;
+            logic [31:0] write_evict;
+            logic [31:0] write_pending_wait;
+        } performance_counter_t;
+
+        performance_counter_t perf_counter_q, perf_counter_d;
+    `endif
+
+
+    /////////////////////////////////Functions//////////////////////////////// 
     function automatic logic [MEM_PORTS-1:0] rotate_left(input logic [MEM_PORTS-1:0] port_in);
         // By using shift operators instead of indexed part-selects, 
         // we bypass the negative index elaboration error completely.
@@ -228,9 +246,15 @@ module vproc_lsu_extension import vproc_pkg::*; #(
     always_ff @(posedge clk_i or negedge async_rst_ni) begin
         if (~async_rst_ni) begin
             scratch_state_q.fsm_state <= IDLE;
+            `ifdef ENABLE_PERF
+                perf_counter_q <= '0;
+            `endif
         end
         else if (~sync_rst_ni) begin
             scratch_state_q.fsm_state <= IDLE;
+            `ifdef ENABLE_PERF
+                perf_counter_q <= '0;
+            `endif
         end
         else begin
             scratch_state_q <= scratch_state_d;
@@ -240,6 +264,9 @@ module vproc_lsu_extension import vproc_pkg::*; #(
             mem_err_q     <= mem_err_d;
             mem_any_err_q <= mem_any_err_d;
             mem_exccode_q <= mem_exccode_d;
+            `ifdef ENABLE_PERF
+                perf_counter_q <= perf_counter_d;
+            `endif
         end
     end
 
@@ -473,6 +500,10 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                 eew_in_bytes = VMEM_W/8;
         endcase
 
+        `ifdef ENABLE_PERF
+            perf_counter_d = perf_counter_q;
+        `endif
+
         unique case (scratch_state_q.fsm_state)
         
             IDLE: begin
@@ -529,6 +560,10 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                             scratch_memory_q[selected_index].addr <= state_req_red.req_addr_q &
                             scratch_memory_q[selected_index].addr + VMEM_W/8 > state_req_red.req_addr_q + eew_in_bytes - 1
                         ) begin
+
+                            `ifdef ENABLE_PERF
+                                perf_counter_d.read_hit = perf_counter_q.read_hit + 1;
+                            `endif
                             
                             scratch_read_hit = 1;
 
@@ -553,6 +588,10 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                                 scratch_pending = 1;
                                 scratch_pending_index = selected_index;
                                 scratch_pending_data_off = scratch_data_offset;
+
+                                `ifdef ENABLE_PERF
+                                    perf_counter_d.read_pending_hit = perf_counter_q.read_pending_hit + 1;
+                                `endif
                             end
 
                         end
@@ -580,6 +619,10 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                                 scratch_pending = 1;
                                 scratch_pending_index = selected_index;
                                 scratch_pending_data_off = '0;
+
+                                `ifdef ENABLE_PERF
+                                    perf_counter_d.read_evict = perf_counter_q.read_evict + 1;
+                                `endif
                             end else begin
                                 scratch_state_d.fsm_state = PENDING_LOAD_STALL;
                                 scratch_state_d.pending_load_state_cb = LOAD;
@@ -643,7 +686,11 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                         end
                     end
                     default: ;
-                endcase 
+                endcase
+
+                `ifdef ENABLE_PERF
+                    perf_counter_d.read_pending_wait = perf_counter_q.read_pending_wait + 1;
+                `endif
 
                 
             end
@@ -673,6 +720,9 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                         ) begin
                             scratch_read_hit = 1;
                             selected_write_index = selected_index;
+                            `ifdef ENABLE_PERF
+                                perf_counter_d.write_hit = perf_counter_q.write_hit + 1;
+                            `endif
                         end
                     end
 
@@ -695,6 +745,9 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                                 scratch_memory_d[selected_write_index].addr = state_req_red.req_addr_q;
                                 scratch_memory_d[selected_write_index].wmask = '0;
                                 scratch_data_offset = '0;
+                                `ifdef ENABLE_PERF
+                                    perf_counter_d.write_evict = perf_counter_q.write_evict + 1;
+                                `endif
                             end else begin
                                 scratch_state_d.fsm_state = PENDING_STORE_STALL;
                                 scratch_state_d.pending_store_state_cb = STORE_SCRATCH;
@@ -763,6 +816,10 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                         endcase 
                     end
                 end
+
+                `ifdef ENABLE_PERF
+                    perf_counter_d.write_pending_wait = perf_counter_q.write_pending_wait + 1;
+                `endif
 
             end
 
