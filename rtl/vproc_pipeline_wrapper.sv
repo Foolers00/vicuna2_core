@@ -34,6 +34,9 @@ module vproc_pipeline_wrapper import vproc_pkg::*, obi_pkg::*; #(
         parameter int unsigned          PORT_QUEUE_DEPTH   = 1,
         parameter bit                   DONT_CARE_ZERO     = 1'b0  // initialize don't care values to zero
     )(
+        `ifdef ENABLE_LSU_PERF
+        output lsu_performance_counter_t  lsu_perf_counter_o,
+        `endif
         input  logic                    clk_i,
         input  logic                    async_rst_ni,
         input  logic                    sync_rst_ni,
@@ -861,6 +864,9 @@ module vproc_pipeline_wrapper import vproc_pkg::*, obi_pkg::*; #(
                 .PORT_QUEUE_DEPTH    ( PORT_QUEUE_DEPTH    ),
                 .DONT_CARE_ZERO      ( DONT_CARE_ZERO      )
             ) pipeline (
+                `ifdef ENABLE_LSU_PERF
+                .lsu_perf_counter_o       ( lsu_perf_counter_o                          ),
+                `endif
                 .pipe_in_state_i     ( state_init          ),
                 .*
             );

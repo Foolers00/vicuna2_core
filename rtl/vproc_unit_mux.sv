@@ -24,6 +24,9 @@ module vproc_unit_mux import vproc_pkg::*, obi_pkg::*; #(
         parameter bit                                DONT_CARE_ZERO  = 1'b0
     )
     (
+        `ifdef ENABLE_LSU_PERF
+        output lsu_performance_counter_t  lsu_perf_counter_o,
+        `endif
         input  logic                                 clk_i,
         input  logic                                 async_rst_ni,
         input  logic                                 sync_rst_ni,
@@ -71,6 +74,11 @@ module vproc_unit_mux import vproc_pkg::*, obi_pkg::*; #(
         output logic    [4:0]                        xreg_addr_o,
         output logic    [31:0]                       xreg_data_o
     );
+
+    `ifdef ENABLE_LSU_PERF
+        lsu_performance_counter_t  lsu_perf_counter [UNIT_CNT-1:0];
+        assign lsu_perf_counter_o = lsu_perf_counter[UNIT_LSU];
+    `endif
 
     logic [UNIT_CNT-1:0] unit_in_valid;
     logic [UNIT_CNT-1:0] unit_in_ready;
@@ -144,6 +152,9 @@ module vproc_unit_mux import vproc_pkg::*, obi_pkg::*; #(
                     .PORT_QUEUE_DEPTH          ( PORT_QUEUE_DEPTH           ),
                     .DONT_CARE_ZERO            ( DONT_CARE_ZERO             )
                 ) unit (
+                    `ifdef ENABLE_LSU_PERF
+                    .lsu_perf_counter_o       ( lsu_perf_counter        [i] ),
+                    `endif
                     .clk_i                     ( clk_i                      ),
                     .async_rst_ni              ( async_rst_ni               ),
                     .sync_rst_ni               ( sync_rst_ni                ),

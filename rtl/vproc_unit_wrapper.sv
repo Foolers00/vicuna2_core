@@ -23,6 +23,9 @@ module vproc_unit_wrapper import vproc_pkg::*; #(
         parameter bit                                DONT_CARE_ZERO  = 1'b0
     )
     (
+        `ifdef ENABLE_LSU_PERF
+        output lsu_performance_counter_t  lsu_perf_counter_o,
+        `endif
         input  logic                                 clk_i,
         input  logic                                 async_rst_ni,
         input  logic                                 sync_rst_ni,
@@ -87,6 +90,9 @@ module vproc_unit_wrapper import vproc_pkg::*; #(
                 .PORT_QUEUE_DEPTH         ( PORT_QUEUE_DEPTH                            ),
                 .DONT_CARE_ZERO           ( DONT_CARE_ZERO                              )
             ) lsu (
+                `ifdef ENABLE_LSU_PERF
+                .lsu_perf_counter_o       ( lsu_perf_counter_o                          ),
+                `endif
                 .clk_i                    ( clk_i                                       ),
                 .async_rst_ni             ( async_rst_ni                                ),
                 .sync_rst_ni              ( sync_rst_ni                                 ),

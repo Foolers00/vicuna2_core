@@ -433,4 +433,17 @@ localparam fpu_features_t RV32ZVFH = '{
     IntFmtMask:    4'b0010  //TODO:FIX
 };
 
+`define ENABLE_LSU_PERF 1
+`ifdef ENABLE_LSU_PERF        
+typedef struct packed {
+    logic [31:0] read_hit;
+    logic [31:0] read_pending_hit;
+    logic [31:0] read_evict;
+    logic [31:0] read_pending_wait;
+    logic [31:0] write_hit;
+    logic [31:0] write_evict;
+    logic [31:0] write_pending_wait;
+} lsu_performance_counter_t;
+`endif
+
 endpackage

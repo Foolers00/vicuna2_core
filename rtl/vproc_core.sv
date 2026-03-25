@@ -204,6 +204,10 @@ module vproc_core import vproc_pkg::*, obi_pkg::*; #(
     assign sync_rst_n  = ASYNC_RESET ? 1'b1   : rst_ni;
 
 
+
+    lsu_performance_counter_t lsu_perf_counter [PIPE_CNT-1:0] /* verilator public */;
+
+
     ///////////////////////////////////////////////////////////////////////////
     // CONFIGURATION STATE AND CSR READ AND WRITES
 
@@ -1040,6 +1044,9 @@ module vproc_core import vproc_pkg::*, obi_pkg::*; #(
                 .PORT_QUEUE_DEPTH         ( PORT_QUEUE_DEPTH           ),
                 .DONT_CARE_ZERO           ( DONT_CARE_ZERO             )
             ) pipe (
+                `ifdef ENABLE_LSU_PERF
+                .lsu_perf_counter_o       ( lsu_perf_counter[i]        ),
+                `endif
                 .clk_i                    ( clk_i                      ),
                 .async_rst_ni             ( async_rst_n                ),
                 .sync_rst_ni              ( sync_rst_n                 ),
