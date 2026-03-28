@@ -256,9 +256,9 @@ module vproc_lsu_extension import vproc_pkg::*; #(
             scratch_memory_state_q <= scratch_memory_state_d;
             scratch_memory_q <= scratch_memory_d;
             port_state_q <= port_state_d;
-            //mem_err_q     <= mem_err_d;
-            //mem_any_err_q <= mem_any_err_d;
-            //mem_exccode_q <= mem_exccode_d;
+            mem_err_q     <= mem_err_d;
+            mem_any_err_q <= mem_any_err_d;
+            mem_exccode_q <= mem_exccode_d;
             `ifdef ENABLE_LSU_PERF
                 perf_counter_q <= perf_counter_d;
             `endif
@@ -292,9 +292,9 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                     rdata_buf_q   <= rdata_buf_d;
                     rdata_off_q   <= rdata_off_d;
                     rmask_buf_q   <= rmask_buf_d;
-                    mem_err_q     <= mem_err_d;
-                    mem_any_err_q <= mem_any_err_d;
-                    mem_exccode_q <= mem_exccode_d;
+                    //mem_err_q     <= mem_err_d;
+                    //mem_any_err_q <= mem_any_err_d;
+                    //mem_exccode_q <= mem_exccode_d;
                 end
             end
         end else begin
@@ -305,12 +305,12 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                 rdata_off_q         = rdata_off_d;
                 rmask_buf_q         = rmask_buf_d;
             end
-             always_ff @(posedge clk_i) begin
+             /*always_ff @(posedge clk_i) begin
                 // always need a flip-flop for the error flag and exception code
                 mem_err_q     <= mem_err_d;
                 mem_any_err_q <= mem_any_err_d;
                 mem_exccode_q <= mem_exccode_d;
-            end
+            end*/
         end
     endgenerate
 
