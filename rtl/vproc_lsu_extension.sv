@@ -665,6 +665,7 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                                 scratch_pending_data_off = scratch_data_offset;
 
                                 `ifdef ENABLE_LSU_PERF
+                                    perf_counter_d.read_hit = perf_counter_q.read_hit;
                                     perf_counter_d.read_pending_hit = perf_counter_q.read_pending_hit + 1;
                                 `endif
                             end
@@ -752,7 +753,7 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                         ) begin
 
                             `ifdef ENABLE_LSU_PERF
-                                perf_counter_d.read_pending_hit = perf_counter_q.read_pending_hit + 1;
+                                perf_counter_d.read_hit = perf_counter_q.read_hit + 1;
                             `endif
                             
                             scratch_read_hit = 1;
@@ -769,6 +770,7 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                                 scratch_pending_data_off = scratch_data_offset;
 
                                 `ifdef ENABLE_LSU_PERF
+                                    perf_counter_d.read_hit = perf_counter_q.read_hit;
                                     perf_counter_d.read_pending_hit = perf_counter_q.read_pending_hit + 1;
                                 `endif
                             end
