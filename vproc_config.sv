@@ -1,4 +1,4 @@
-// Auto-generated on Wed Mar 25 02:24:52 PM CET 2026
+// Auto-generated on Sat May  9 03:11:18 PM CEST 2026
 
 // Vector coprocessor default configuration package
 //
@@ -11,14 +11,14 @@
 // the vproc_core module can override any parameter with a different value.
 
 // Configuration details:
-// - Vector register width: 128 bits
+// - Vector register width: 256 bits
 // - Vector pipelines:
 //   * Pipeline 0: 32 bits wide, contains VLSU
-//     Uses 1 128-bit vreg read ports and write port 0
+//     Uses 1 256-bit vreg read ports and write port 0
 //   * Pipeline 1: 32 bits wide, contains VALU
-//     Uses 1 128-bit vreg read ports and write port 0
+//     Uses 1 256-bit vreg read ports and write port 0
 //   * Pipeline 2: 32 bits wide, contains VELEM, VSLD, VDIV, VMUL
-//     Uses 1 128-bit vreg read ports and write port 0
+//     Uses 1 256-bit vreg read ports and write port 0
 // - Vector register file needs 4 read ports and 1 write ports
 
 package vproc_config;
@@ -26,7 +26,7 @@ package vproc_config;
     import vproc_pkg::*;
 
     parameter vreg_type    VREG_TYPE                   = VREG_GENERIC;
-    parameter int unsigned VREG_W                      = 128;
+    parameter int unsigned VREG_W                      = 256;
     parameter int unsigned VMEM_W                      = 32;
     parameter int unsigned MEM_W                       = 32;
     parameter int unsigned VPORT_RD_CNT                = 4;

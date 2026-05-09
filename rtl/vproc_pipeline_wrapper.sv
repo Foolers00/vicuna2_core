@@ -25,6 +25,7 @@ module vproc_pipeline_wrapper import vproc_pkg::*, obi_pkg::*; #(
         parameter bit [VPORT_CNT-1:0]   VPORT_BUFFER       = '0,   // buffer port
         parameter bit                   VPORT_V0           = '0,   // use dedicated v0 read port
         parameter int unsigned          MAX_OP_W           = 64,   // operand width in bits
+        parameter int unsigned          MEM_W              = 0,
         parameter int unsigned           VLSU_QUEUE_SZ     = 4,
         parameter bit [VLSU_FLAGS_W-1:0] VLSU_FLAGS        = '0,
         parameter mul_type               MUL_TYPE          = MUL_GENERIC,
@@ -527,6 +528,11 @@ module vproc_pipeline_wrapper import vproc_pkg::*, obi_pkg::*; #(
         state_init.res_narrow[0] = '0;
         state_init.res_vaddr     = pipe_in_data_i.rd.addr;
 
+        for(int i = 0; i < OP_CNT; i++) begin
+            state_init.op_flags[i].lsu_instr   = 0;
+            state_init.op_flags[i].field_instr = 0;
+        end
+
         if (unit_lsu) begin 
             state_init.op_flags[0       ].elemwise =  pipe_in_data_i.mode.lsu.stride != LSU_UNITSTRIDE;
             state_init.op_flags[1       ].vreg     =  pipe_in_data_i.mode.lsu.store;
@@ -534,6 +540,10 @@ module vproc_pipeline_wrapper import vproc_pkg::*, obi_pkg::*; #(
             state_init.op_vaddr[1       ]          =  pipe_in_data_i.rd.addr;
             state_init.op_flags[OP_CNT-1].elemwise =  pipe_in_data_i.mode.lsu.stride != LSU_UNITSTRIDE;
             state_init.res_vreg[0       ]          = ~pipe_in_data_i.mode.lsu.store;
+            for(int i = 0; i < OP_CNT; i++) begin
+                state_init.op_flags[i].lsu_instr   = 1;
+                state_init.op_flags[i].field_instr = state_init.field_init_count > 0 ? 1 : 0;
+            end
         end
         if (unit_alu) begin
             state_init.op_flags  [0        ].sigext =  pipe_in_data_i.mode.alu.sigext;
@@ -614,6 +624,7 @@ module vproc_pipeline_wrapper import vproc_pkg::*, obi_pkg::*; #(
                 .VADDR_W             ( VADDR_W             ),
                 .VPORT_BUFFER        ( VPORT_BUFFER        ),
                 .MAX_OP_W            ( MAX_OP_W            ),
+                .MEM_W               ( MEM_W               ),
                 .OP_CNT              ( OP_CNT              ),
                 .OP_W                ( OP_W                ),
                 .OP_STAGE            ( OP_STAGE            ),
@@ -686,6 +697,7 @@ module vproc_pipeline_wrapper import vproc_pkg::*, obi_pkg::*; #(
                 .VADDR_W             ( VADDR_W             ),
                 .VPORT_BUFFER        ( VPORT_BUFFER        ),
                 .MAX_OP_W            ( MAX_OP_W            ),
+                .MEM_W               ( MEM_W               ),
                 .OP_CNT              ( OP_CNT              ),
                 .OP_W                ( OP_W                ),
                 .OP_STAGE            ( OP_STAGE            ),
@@ -758,6 +770,7 @@ module vproc_pipeline_wrapper import vproc_pkg::*, obi_pkg::*; #(
                 .VADDR_W             ( VADDR_W             ),
                 .VPORT_BUFFER        ( VPORT_BUFFER        ),
                 .MAX_OP_W            ( MAX_OP_W            ),
+                .MEM_W               ( MEM_W               ),
                 .OP_CNT              ( OP_CNT              ),
                 .OP_W                ( OP_W                ),
                 .OP_STAGE            ( OP_STAGE            ),
@@ -830,6 +843,7 @@ module vproc_pipeline_wrapper import vproc_pkg::*, obi_pkg::*; #(
                 .VADDR_W             ( VADDR_W             ),
                 .VPORT_BUFFER        ( VPORT_BUFFER        ),
                 .MAX_OP_W            ( MAX_OP_W            ),
+                .MEM_W               ( MEM_W               ),
                 .OP_CNT              ( OP_CNT              ),
                 .OP_W                ( OP_W                ),
                 .OP_STAGE            ( OP_STAGE            ),
@@ -905,6 +919,7 @@ module vproc_pipeline_wrapper import vproc_pkg::*, obi_pkg::*; #(
                 .VADDR_W             ( VADDR_W             ),
                 .VPORT_BUFFER        ( VPORT_BUFFER        ),
                 .MAX_OP_W            ( MAX_OP_W            ),
+                .MEM_W               ( MEM_W               ),
                 .OP_CNT              ( OP_CNT              ),
                 .OP_W                ( OP_W                ),
                 .OP_STAGE            ( OP_STAGE            ),
@@ -977,6 +992,7 @@ module vproc_pipeline_wrapper import vproc_pkg::*, obi_pkg::*; #(
                 .VADDR_W             ( VADDR_W             ),
                 .VPORT_BUFFER        ( VPORT_BUFFER        ),
                 .MAX_OP_W            ( MAX_OP_W            ),
+                .MEM_W               ( MEM_W               ),
                 .OP_CNT              ( OP_CNT              ),
                 .OP_W                ( OP_W                ),
                 .OP_STAGE            ( OP_STAGE            ),
@@ -1049,6 +1065,7 @@ module vproc_pipeline_wrapper import vproc_pkg::*, obi_pkg::*; #(
                 .VADDR_W             ( VADDR_W             ),
                 .VPORT_BUFFER        ( VPORT_BUFFER        ),
                 .MAX_OP_W            ( MAX_OP_W            ),
+                .MEM_W               ( MEM_W               ),
                 .OP_CNT              ( OP_CNT              ),
                 .OP_W                ( OP_W                ),
                 .OP_STAGE            ( OP_STAGE            ),
@@ -1121,6 +1138,7 @@ module vproc_pipeline_wrapper import vproc_pkg::*, obi_pkg::*; #(
                 .VADDR_W             ( VADDR_W             ),
                 .VPORT_BUFFER        ( VPORT_BUFFER        ),
                 .MAX_OP_W            ( MAX_OP_W            ),
+                .MEM_W               ( MEM_W               ),
                 .OP_CNT              ( OP_CNT              ),
                 .OP_W                ( OP_W                ),
                 .OP_STAGE            ( OP_STAGE            ),
@@ -1193,6 +1211,7 @@ module vproc_pipeline_wrapper import vproc_pkg::*, obi_pkg::*; #(
                 .VADDR_W             ( VADDR_W             ),
                 .VPORT_BUFFER        ( VPORT_BUFFER        ),
                 .MAX_OP_W            ( MAX_OP_W            ),
+                .MEM_W               ( MEM_W               ),
                 .OP_CNT              ( OP_CNT              ),
                 .OP_W                ( OP_W                ),
                 .OP_STAGE            ( OP_STAGE            ),
@@ -1265,6 +1284,7 @@ module vproc_pipeline_wrapper import vproc_pkg::*, obi_pkg::*; #(
                 .VADDR_W             ( VADDR_W             ),
                 .VPORT_BUFFER        ( VPORT_BUFFER        ),
                 .MAX_OP_W            ( MAX_OP_W            ),
+                .MEM_W               ( MEM_W               ),
                 .OP_CNT              ( OP_CNT              ),
                 .OP_W                ( OP_W                ),
                 .OP_STAGE            ( OP_STAGE            ),

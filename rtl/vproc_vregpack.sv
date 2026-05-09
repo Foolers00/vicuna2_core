@@ -11,6 +11,8 @@ module vproc_vregpack #(
 
         // vector register result configuration
         parameter int unsigned                      MAX_RES_W           = 64,
+        parameter int unsigned                      MEM_W               = 0,
+        parameter int unsigned                      MEM_PORTS           = 1,
         parameter int unsigned                      RES_CNT             = 1,
         parameter int unsigned                      RES_W[RES_CNT]      = '{0}, // result width
         parameter bit [RES_CNT-1:0]                 RES_MASK            = '0,   // result is a mask
@@ -286,6 +288,19 @@ module vproc_vregpack #(
 
             end else begin
 
+                logic [RES_W[i]-1:0]   lsu_data_helper;
+                logic [RES_W[i]/8-1:0] lsu_mask_helper;
+
+                if (RES_W[i] == MEM_W) begin
+                    assign lsu_data_helper = pipe_in_res_data_i[i][MEM_W-1:0];
+                    assign lsu_mask_helper = pipe_in_res_mask_i[i][MEM_W/8-1:0];
+                end else begin
+                    assign lsu_data_helper = { pipe_in_res_data_i[i][MEM_W-1:0], 
+                                            res_buffer[i][VPORT_W-1 : VPORT_W-RES_W[i]+MEM_W] };
+                    assign lsu_mask_helper = { pipe_in_res_mask_i[i][MEM_W/8-1:0], 
+                                            msk_buffer[i][VPORT_W/8-1 : VPORT_W/8-RES_W[i]/8+MEM_W/8] };
+                end
+
                 logic [RES_W[i]  -1:0] res_default;
                 logic [RES_W[i]/8-1:0] msk_default;
                 always_comb begin
@@ -293,29 +308,55 @@ module vproc_vregpack #(
                     msk_default      = pipe_in_res_mask_i[i][RES_W[i]/8-1:0];
                     res_saturated[i] = '0;
 
+                    if(pipe_in_res_flags_i[i].lsu_instr & MEM_PORTS > 1 & pipe_in_res_flags_i[i].field_instr & ~pipe_in_res_flags_i[i].elemwise) begin
+                        res_default = lsu_data_helper;
+                        msk_default = lsu_mask_helper;
+                    end
+
                     //Changes to control flow to improve performance.  Introduces timing anomalies
                     //For the PACK unit, major changes to shifting partial inputs differently to allow for early stopping on instructions
                     `ifdef OLD_VICUNA
                         if ((RES_ALLOW_ELEMWISE[i] & pipe_in_res_flags_i[i].elemwise) | RES_ALWAYS_ELEMWISE[i]) begin
-                        res_default = DONT_CARE_ZERO ? '0 : 'x;
-                        msk_default = DONT_CARE_ZERO ? '0 : 'x;
-                        unique case (pipe_in_eew_i)
-                            VSEW_8: begin
-                                res_default = {   pipe_in_res_data_i[i][7 :0], res_buffer[i][VPORT_W  -1:VPORT_W  -RES_W[i]  +8 ]};
-                                msk_default = {   pipe_in_res_mask_i[i][0]   , msk_buffer[i][VPORT_W/8-1:VPORT_W/8-RES_W[i]/8+1 ]};
+                            res_default = DONT_CARE_ZERO ? '0 : 'x;
+                            msk_default = DONT_CARE_ZERO ? '0 : 'x;
+                            unique case (pipe_in_eew_i)
+                                VSEW_8: begin
+                                    res_default = {   pipe_in_res_data_i[i][7 :0], res_buffer[i][VPORT_W  -1:VPORT_W  -RES_W[i]  +8 ]};
+                                    msk_default = {   pipe_in_res_mask_i[i][0]   , msk_buffer[i][VPORT_W/8-1:VPORT_W/8-RES_W[i]/8+1 ]};
 
+                                    end
+                                VSEW_16: begin
+                                    res_default = {   pipe_in_res_data_i[i][15:0], res_buffer[i][VPORT_W  -1:VPORT_W  -RES_W[i]  +16]};
+                                    msk_default = {{2{pipe_in_res_mask_i[i][0]}} , msk_buffer[i][VPORT_W/8-1:VPORT_W/8-RES_W[i]/8+2 ]};
+                                    
                                 end
-                            VSEW_16: begin
-                                res_default = {   pipe_in_res_data_i[i][15:0], res_buffer[i][VPORT_W  -1:VPORT_W  -RES_W[i]  +16]};
-                                msk_default = {{2{pipe_in_res_mask_i[i][0]}} , msk_buffer[i][VPORT_W/8-1:VPORT_W/8-RES_W[i]/8+2 ]};
-                                
+                                VSEW_32: begin
+                                    res_default =    {pipe_in_res_data_i[i][31:0], {RES_W[i]  -32{1'b0}}} | (res_buffer[i][VPORT_W  -1 -: RES_W[i]  ] >> 32);
+                                    msk_default = {{4{pipe_in_res_mask_i[i][0]}} , {RES_W[i]/8-4 {1'b0}}} | (msk_buffer[i][VPORT_W/8-1 -: RES_W[i]/8] >> 4 );
+                                end
+                                default: ;
+                            endcase
+
+                            if(pipe_in_res_flags_i[i].lsu_instr & MEM_PORTS > 1 & ~pipe_in_res_flags_i[i].field_instr) begin
+                                unique case (pipe_in_eew_i)
+                                    VSEW_8: begin
+                                        res_default = {   pipe_in_res_data_i[i][MEM_PORTS*8-1 :0], res_buffer[i][VPORT_W  -1:VPORT_W  -RES_W[i]  +MEM_PORTS*8 ]};
+                                        msk_default = {   pipe_in_res_mask_i[i][MEM_PORTS-1:0]   , msk_buffer[i][VPORT_W/8-1:VPORT_W/8-RES_W[i]/8+MEM_PORTS ]};
+
+                                        end
+                                    VSEW_16: begin
+                                        res_default = {   pipe_in_res_data_i[i][MEM_PORTS*16-1:0], res_buffer[i][VPORT_W  -1:VPORT_W  -RES_W[i]  +MEM_PORTS*16]};
+                                        msk_default = {   pipe_in_res_mask_i[i][2*MEM_PORTS-1:0] , msk_buffer[i][VPORT_W/8-1:VPORT_W/8-RES_W[i]/8+2*MEM_PORTS ]};
+                                        
+                                    end
+                                    VSEW_32: begin
+                                        res_default = (pipe_in_res_data_i[i] << (RES_W[i] - MEM_PORTS*32)) | (res_buffer[i][VPORT_W-1 -: RES_W[i]] >> MEM_PORTS*32);
+                                        msk_default = (pipe_in_res_mask_i[i] << (RES_W[i]/8 - 4*MEM_PORTS)) | (msk_buffer[i][VPORT_W/8-1 -: RES_W[i]/8] >> 4*MEM_PORTS);
+                                    end
+                                    default: ;
+                                endcase
                             end
-                            VSEW_32: begin
-                                res_default =    {pipe_in_res_data_i[i][31:0], {RES_W[i]  -32{1'b0}}} | (res_buffer[i][VPORT_W  -1 -: RES_W[i]  ] >> 32);
-                                msk_default = {{4{pipe_in_res_mask_i[i][0]}} , {RES_W[i]/8-4 {1'b0}}} | (msk_buffer[i][VPORT_W/8-1 -: RES_W[i]/8] >> 4 );
-                            end
-                            default: ;
-                        endcase
+
                         end
                     `else
                         //Special Case Mask for Elemwise operations
