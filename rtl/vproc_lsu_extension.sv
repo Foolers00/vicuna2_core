@@ -1053,11 +1053,6 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                         port_queue_ready_in[i] = 1;
                     end
                 end
-
-                `ifdef ENABLE_LSU_PERF
-                    perf_counter_d.write_pending_wait = perf_counter_q.write_pending_wait + 1;
-                `endif
-
             end
 
             default: ;

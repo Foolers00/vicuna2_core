@@ -291,9 +291,9 @@ module vproc_vregpack #(
                 logic [RES_W[i]-1:0]   lsu_data_helper;
                 logic [RES_W[i]/8-1:0] lsu_mask_helper;
 
-                if (RES_W[i] == MEM_W) begin
-                    assign lsu_data_helper = pipe_in_res_data_i[i][MEM_W-1:0];
-                    assign lsu_mask_helper = pipe_in_res_mask_i[i][MEM_W/8-1:0];
+                if (MEM_PORTS == 1) begin
+                    assign lsu_data_helper = pipe_in_res_data_i[i][RES_W[i]-1:0];
+                    assign lsu_mask_helper = pipe_in_res_mask_i[i][RES_W[i]/8-1:0];
                 end else begin
                     assign lsu_data_helper = { pipe_in_res_data_i[i][MEM_W-1:0], 
                                             res_buffer[i][VPORT_W-1 : VPORT_W-RES_W[i]+MEM_W] };
