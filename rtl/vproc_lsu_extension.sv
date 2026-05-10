@@ -523,7 +523,7 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                                         port_pending_select[i] = port_pending_select[j];
 
                                         `ifdef ENABLE_LSU_PERF
-                                            perf_counter_d.write_hit = perf_counter_q.write_hit + 1;
+                                            perf_counter_d.write_hit = perf_counter_d.write_hit + 1;
                                         `endif
 
                                         if(state_req_red.req_addr_q[j][31:$clog2(VMEM_W/8)] != end_of_addr[i][31:$clog2(VMEM_W/8)]) begin
@@ -601,7 +601,7 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                                         port_pending_data_off[i] = state_req_red.req_addr_q[i][$clog2(VMEM_W/8)-1:0];
 
                                         `ifdef ENABLE_LSU_PERF
-                                            perf_counter_d.read_hit = perf_counter_q.read_hit + 1;
+                                            perf_counter_d.read_hit = perf_counter_d.read_hit + 1;
                                         `endif
 
 
@@ -668,7 +668,7 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                                 port_pending_data_off[i] = state_req_red.req_addr_q[i][$clog2(VMEM_W/8)-1:0];
 
                                 `ifdef ENABLE_LSU_PERF
-                                    perf_counter_d.read_hit = perf_counter_q.read_hit + 1;
+                                    perf_counter_d.read_hit = perf_counter_d.read_hit + 1;
                                 `endif
 
 
@@ -742,7 +742,7 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                                     port_pending_data_off[i] = eew_in_bytes - end_of_addr[i][$clog2(VMEM_W/8)-1:0];
 
                                     `ifdef ENABLE_LSU_PERF
-                                        perf_counter_d.read_hit = perf_counter_q.read_hit + 1;
+                                        perf_counter_d.read_hit = perf_counter_d.read_hit + 1;
                                     `endif
 
                                 end
@@ -802,7 +802,7 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                                 port_pending_select[i] = port_pending_select[j];
 
                                 `ifdef ENABLE_LSU_PERF
-                                    perf_counter_d.write_hit = perf_counter_q.write_hit + 1;
+                                    perf_counter_d.write_hit = perf_counter_d.write_hit + 1;
                                 `endif
 
                                 if(state_req_red.req_addr_q[j][31:$clog2(VMEM_W/8)] != end_of_addr[i][31:$clog2(VMEM_W/8)]) begin
@@ -892,7 +892,7 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                                 port_pending_select[i] = port_pending_select[j];
 
                                 `ifdef ENABLE_LSU_PERF
-                                    perf_counter_d.write_hit = perf_counter_q.write_hit + 1;
+                                    perf_counter_d.write_hit = perf_counter_d.write_hit + 1;
                                 `endif
                             end
                         end
