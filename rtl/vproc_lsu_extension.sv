@@ -1198,6 +1198,11 @@ module vproc_lsu_extension import vproc_pkg::*; #(
             end
         end
 
+        `ifdef ENABLE_LSU_PERF
+            if(pending_req_stall) begin
+                perf_counter_d = perf_counter_q;
+            end
+        `endif
 
     end
 
