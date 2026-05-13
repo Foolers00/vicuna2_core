@@ -440,6 +440,7 @@ module vproc_lsu_extension import vproc_pkg::*; #(
         logic [VMEM_W-1:0] scratch_wdata;
         logic [VMEM_W/8-1:0] scratch_wmask;
         elem_cnt_t selected_index;
+        elem_cnt_t selected_hit_index;
         elem_cnt_t selected_write_index;
 
         logic [31:0] end_of_addr;
@@ -463,6 +464,7 @@ module vproc_lsu_extension import vproc_pkg::*; #(
         mem_req_queue_valid_in = 0;
 
         selected_index = '0;
+        selected_hit_index = '0;
         selected_write_index = '0;
 
         pending_req_stall = 0;
@@ -623,6 +625,7 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                         ) begin
                             
                             scratch_read_hit = 1;
+                            selected_hit_index = selected_index;
 
                             scratch_data_offset = state_req_red.req_addr_q[$clog2(VMEM_W/8)-1:0];   
 
@@ -635,13 +638,12 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                                 scratch_pending_index = selected_index;
                                 scratch_pending_data_off = scratch_data_offset;
                             end
+                        end
+                    end
 
-
-                            if(scratch_memory_q[selected_index].addr[31:$clog2(VMEM_W/8)] != end_of_addr[31:$clog2(VMEM_W/8)]) begin
-                                misalignment_request = 1;
-                            end
-
-
+                    if(scratch_read_hit) begin
+                        if(scratch_memory_q[selected_hit_index].addr[31:$clog2(VMEM_W/8)] != end_of_addr[31:$clog2(VMEM_W/8)]) begin
+                            misalignment_request = 1;
                         end
                     end
 
@@ -792,10 +794,13 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                         ) begin
                             scratch_read_hit = 1;
                             selected_write_index = selected_index;
+                            selected_hit_index = selected_index;
+                        end
+                    end
 
-                            if(scratch_memory_q[selected_index].addr[31:$clog2(VMEM_W/8)] != end_of_addr[31:$clog2(VMEM_W/8)]) begin
-                                misalignment_request = 1;
-                            end
+                    if(scratch_read_hit) begin
+                        if(scratch_memory_q[selected_hit_index].addr[31:$clog2(VMEM_W/8)] != end_of_addr[31:$clog2(VMEM_W/8)]) begin
+                            misalignment_request = 1;
                         end
                     end
 
