@@ -420,6 +420,7 @@ module vproc_lsu_extension import vproc_pkg::*; #(
         logic [MEM_PORTS-1:0] port_read_hit;
         logic [MEM_PORTS-1:0] port_write_hit;
         logic [MEM_PORTS-1:0] port_hit;
+        logic [$clog2(MEM_PORTS):0] port_hit_index;
         logic [MEM_PORTS-1:0][VMEM_W-1:0] port_wdata;
         logic [MEM_PORTS-1:0][VMEM_W/8-1:0] port_wmask;
 
@@ -430,6 +431,7 @@ module vproc_lsu_extension import vproc_pkg::*; #(
         port_read_hit = '0;
         port_write_hit = '0;
         port_hit = '0;
+        port_hit_index = '0;
         port_pending_select = '0;
         port_wdata = '0;
         port_wmask = '0;
@@ -519,21 +521,22 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                                         state_req_red.req_addr_q[j][31:$clog2(VMEM_W/8)] == state_req_red.req_addr_q[i][31:$clog2(VMEM_W/8)]
                                     ) begin
                                         
-                                        port_read_hit[i] = 1; 
+                                        port_read_hit[i] = 1;
+                                        port_hit_index = j; 
                                         port_pending_select[i] = port_pending_select[j];
-
-                                        `ifdef ENABLE_LSU_PERF
-                                            perf_counter_d.write_hit = perf_counter_d.write_hit + 1;
-                                        `endif
-
-                                        if(state_req_red.req_addr_q[j][31:$clog2(VMEM_W/8)] != end_of_addr[i][31:$clog2(VMEM_W/8)]) begin
-                                            misalignment_request[i] = 1;
-                                            scratch_state_d.misalignment_request_in[i] = 1;
-                                        end
-
-
                                     end
                                 end
+
+                                if(port_read_hit[i]) begin
+                                    if(state_req_red.req_addr_q[port_hit_index][31:$clog2(VMEM_W/8)] != end_of_addr[i][31:$clog2(VMEM_W/8)]) begin
+                                        misalignment_request[i] = 1;
+                                        scratch_state_d.misalignment_request_in[i] = 1;
+                                    end
+                                    `ifdef ENABLE_LSU_PERF
+                                        perf_counter_d.write_hit = perf_counter_d.write_hit + 1;
+                                    `endif
+                                end
+
                                 port_pending_data_off[i] = state_req_red.req_addr_q[i][$clog2(VMEM_W/8)-1:0];
 
                                 if(~port_read_hit[i]) begin
@@ -597,21 +600,20 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                                     ) begin
                                         
                                         port_read_hit[i] = 1; 
+                                        port_hit_index = j;
                                         port_pending_select[i] = port_pending_select[j];
                                         port_pending_data_off[i] = state_req_red.req_addr_q[i][$clog2(VMEM_W/8)-1:0];
-
-                                        `ifdef ENABLE_LSU_PERF
-                                            perf_counter_d.read_hit = perf_counter_d.read_hit + 1;
-                                        `endif
-
-
-                                        if(state_req_red.req_addr_q[j][31:$clog2(VMEM_W/8)] != end_of_addr[i][31:$clog2(VMEM_W/8)]) begin
-                                            misalignment_request[i] = 1;
-                                            scratch_state_d.misalignment_request_in[i] = 1;
-                                        end
-
-
                                     end
+                                end
+
+                                if(port_read_hit[i]) begin
+                                    if(state_req_red.req_addr_q[port_hit_index][31:$clog2(VMEM_W/8)] != end_of_addr[i][31:$clog2(VMEM_W/8)]) begin
+                                        misalignment_request[i] = 1;
+                                        scratch_state_d.misalignment_request_in[i] = 1;
+                                    end
+                                    `ifdef ENABLE_LSU_PERF
+                                        perf_counter_d.read_hit = perf_counter_d.read_hit + 1;
+                                    `endif
                                 end
 
                                 if(~port_read_hit[i]) begin
@@ -663,22 +665,21 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                                 state_req_red.req_addr_q[j][31:$clog2(VMEM_W/8)] == state_req_red.req_addr_q[i][31:$clog2(VMEM_W/8)]
                             ) begin
                                 
-                                port_read_hit[i] = 1; 
+                                port_read_hit[i] = 1;
+                                port_hit_index = j; 
                                 port_pending_select[i] = port_pending_select[j];
                                 port_pending_data_off[i] = state_req_red.req_addr_q[i][$clog2(VMEM_W/8)-1:0];
-
-                                `ifdef ENABLE_LSU_PERF
-                                    perf_counter_d.read_hit = perf_counter_d.read_hit + 1;
-                                `endif
-
-
-                                if(state_req_red.req_addr_q[j][31:$clog2(VMEM_W/8)] != end_of_addr[i][31:$clog2(VMEM_W/8)]) begin
-                                    misalignment_request[i] = 1;
-                                    scratch_state_d.misalignment_request_in[i] = 1;
-                                end
-
-
                             end
+                        end
+
+                        if(port_read_hit[i]) begin
+                            if(state_req_red.req_addr_q[port_hit_index][31:$clog2(VMEM_W/8)] != end_of_addr[i][31:$clog2(VMEM_W/8)]) begin
+                                misalignment_request[i] = 1;
+                                scratch_state_d.misalignment_request_in[i] = 1;
+                            end
+                            `ifdef ENABLE_LSU_PERF
+                                perf_counter_d.read_hit = perf_counter_d.read_hit + 1;
+                            `endif
                         end
 
                         if(~port_read_hit[i]) begin
@@ -798,20 +799,22 @@ module vproc_lsu_extension import vproc_pkg::*; #(
                                 state_req_red.req_addr_q[j][31:$clog2(VMEM_W/8)] == state_req_red.req_addr_q[i][31:$clog2(VMEM_W/8)]
                             ) begin
                                 
-                                port_read_hit[i] = 1; 
+                                port_read_hit[i] = 1;
+                                port_hit_index = j; 
                                 port_pending_select[i] = port_pending_select[j];
-
-                                `ifdef ENABLE_LSU_PERF
-                                    perf_counter_d.write_hit = perf_counter_d.write_hit + 1;
-                                `endif
-
-                                if(state_req_red.req_addr_q[j][31:$clog2(VMEM_W/8)] != end_of_addr[i][31:$clog2(VMEM_W/8)]) begin
-                                    misalignment_request[i] = 1;
-                                    scratch_state_d.misalignment_request_in[i] = 1;
-                                end
-
                             end
                         end
+
+                        if(port_read_hit[i]) begin
+                            if(state_req_red.req_addr_q[port_hit_index][31:$clog2(VMEM_W/8)] != end_of_addr[i][31:$clog2(VMEM_W/8)]) begin
+                                misalignment_request[i] = 1;
+                                scratch_state_d.misalignment_request_in[i] = 1;
+                            end
+                            `ifdef ENABLE_LSU_PERF
+                                perf_counter_d.write_hit = perf_counter_d.write_hit + 1;
+                            `endif
+                        end
+
                         port_pending_data_off[i] = state_req_red.req_addr_q[i][$clog2(VMEM_W/8)-1:0];
 
                         if(~port_read_hit[i]) begin
