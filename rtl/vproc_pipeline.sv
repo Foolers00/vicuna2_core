@@ -147,6 +147,7 @@ module vproc_pipeline import vproc_pkg::*, obi_pkg::*; #(
         cfg_emul                         emul;           // effective MUL factor
         cfg_vxrm                         vxrm;
         logic        [CFG_VL_W     -1:0] vl;
+        logic        [CFG_VL_W       :0] vlmax;
         logic                            vl_0;
         logic                     [31:0] xval_init;
         logic                     [31:0] xval;
@@ -292,6 +293,7 @@ module vproc_pipeline import vproc_pkg::*, obi_pkg::*; #(
             state_next.emul                    = pipe_in_state_i.emul;
             state_next.vxrm                    = pipe_in_state_i.vxrm;
             state_next.vl                      = pipe_in_state_i.vl;
+            state_next.vlmax                   = pipe_in_state_i.vlmax;
             state_next.vl_0                    = pipe_in_state_i.vl_0;
             state_next.xval_init               = pipe_in_state_i.xval;
             state_next.xval                    = pipe_in_state_i.xval;
@@ -854,7 +856,11 @@ module vproc_pipeline import vproc_pkg::*, obi_pkg::*; #(
                 if (OP_DYN_ADDR[i]) begin
                     op_pend_reads_all |= op_addr_offset_pend_reads;
                 end else begin
-                    op_pend_reads_all[(OP_SRC[i] >= VPORT_CNT) ? '0 : op_vaddr[i]] = 1'b1;
+                    if(OP_SRC[i] < VPORT_CNT) begin
+                       op_pend_reads_all[op_vaddr[i]] = 1'b1; 
+                    end
+                    // TODO confirm this was a bug
+                    //op_pend_reads_all[(OP_SRC[i] >= VPORT_CNT) ? '0 : op_vaddr[i]] = 1'b1;
                 end
             end
         end
@@ -903,7 +909,9 @@ module vproc_pipeline import vproc_pkg::*, obi_pkg::*; #(
         logic                          vl_part_0;
         logic                          last_vl_part;    // last VL part that is not 0
         logic                          vl_0;
+        logic [CFG_VL_W       :0]      vlmax;
         logic [31:0]                   xval;
+        logic [31:0]                   op_xval;
         //logic [RES_CNT-1:0]            res_vreg;
         logic [RES_CNT-1:0]            res_narrow;
         logic                          res_narrow_frac;
@@ -915,6 +923,7 @@ module vproc_pipeline import vproc_pkg::*, obi_pkg::*; #(
         logic                     [$clog2(VREG_W/MAX_OP_W)-1 :0] vreg_idx; //TODO: This should be defined per pipeline as log2(VREG_W/MAX_OP_W) bits wide.  Needed by PACK to write results to correct locations
         logic [2:0]                    field_init_count;
         logic [2:0]                    field_counter;
+        logic [MAX_OP_W/8-1:0][CFG_VL_W-1:0] vl_idx;
     } ctrl_t;
 
     logic  unpack_valid;
@@ -961,8 +970,25 @@ module vproc_pipeline import vproc_pkg::*, obi_pkg::*; #(
             unpack_ctrl.vl_part_0 = (state_q.count.val[COUNTER_W-2:0] >  state_q.vl[CFG_VL_W-1:$clog2(COUNTER_OP_W/8)]) |  state_q.vl_0;
         end
         unpack_ctrl.vl_0 = state_q.vl_0;
+        unpack_ctrl.vlmax = state_q.vlmax;
+
+        for(int i = 0; i < MAX_OP_W/8; i++) begin
+            unique case (state_q.eew)
+                VSEW_8: begin
+                    unpack_ctrl.vl_idx[i] = state_q.count + i;
+                end
+                VSEW_16: begin
+                    unpack_ctrl.vl_idx[i] = (state_q.count + i) >> 1; 
+                end
+                VSEW_32: begin
+                    unpack_ctrl.vl_idx[i] = (state_q.count + i) >> 2; 
+                end
+                default: ;
+            endcase
+        end
 
         unpack_ctrl.xval = state_q.xval;
+        unpack_ctrl.op_xval = state_q.op_xval[1];
         if (UNITS[UNIT_LSU] & (state_q.unit == UNIT_LSU) & ~state_q.init_addr) begin
             unpack_ctrl.xval = DONT_CARE_ZERO ? '0 : 'x;
             unique case (state_q.mode.lsu.stride)
