@@ -456,6 +456,8 @@ module vproc_lsu_extension import vproc_pkg::*; #(
         scratch_pending = 0;
         scratch_pending_output = '0;
         scratch_pending_req_cleared = 0;
+        scratch_pending_index = 0;
+        scratch_pending_data_off = '0;
         scratch_data_offset = '0;
         scratch_wdata = '0;
         scratch_wmask = '0;
